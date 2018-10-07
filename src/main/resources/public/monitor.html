@@ -1,0 +1,225 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+<link rel="stylesheet" href="/css/bootstrap.min.css">
+
+<!-- 可选的 Bootstrap 主题文件（一般不用引入） -->
+<link rel="stylesheet" href="/css/bootstrap-theme.min.css">
+
+<script src="/js/jquery.min.js"></script>
+
+<!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+<script src="/js/bootstrap.min.js"></script>
+
+
+
+<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+      <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+<style>
+.text-overflow {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+</style>
+
+<script>
+	function showDetail(env, name, ip, port, time) {
+		var content = "";
+		content += "<h5>应用环境：" + env + "</h5>";
+		content += "<h5>应用名称：" + name + "</h5>";
+		content += "<h5>应用ip：" + ip + "</h5>";
+		content += "<h5>应用端口号：" + port + "</h5>";
+		content += "<h5>最后更新时间：" + time + "</h5>";
+		$("#appDetail").html(content);
+	}
+
+	function refresh() {
+		var paramValue = $
+				.ajax({
+					url : "/monitor/list",
+					type : 'post',
+					cache : false,
+					dataType : 'json',
+					contentType : "application/json",
+					success : function(data) {
+						var json = eval(data); //数组
+						var content = "";
+						var total = 0;
+						var totalFail = 0;
+						var totalSuccess = 0;
+						var overviewText = "";
+						var envOverviewHtml = "";
+						$
+								.each(
+										json,
+										function(index) {
+											var envTotal = 0;
+											var envTotalFail = 0;
+											var envTotalSuccess = 0;
+											totalFail += json[index].zookeeperFailCount;
+											totalSuccess += json[index].zookeeperSuccessCount;
+											totalFail += json[index].dubboFailCount;
+											totalSuccess += json[index].dubboSuccessCount;
+											envTotalFail += json[index].zookeeperFailCount;
+											envTotalSuccess += json[index].zookeeperSuccessCount;
+											envTotalFail += json[index].dubboFailCount;
+											envTotalSuccess += json[index].dubboSuccessCount;
+											content += "<h4 id='"+json[index].env+"'>"
+													+ json[index].name
+													+ "</h4>";
+											content += "<div class='alert' role='alert'>";
+											var zookeeperList = json[index].zookeeperList;
+											var zookeeperContent = "<h5>zookeeper"
+													+ " 成功总数："
+													+ json[index].zookeeperSuccessCount
+													+ " ，失败总数："
+													+ json[index].zookeeperFailCount
+													+ "</h5>";
+											zookeeperContent += "<div class='row'>";
+											if (null != zookeeperList
+													&& zookeeperList.length != 0) {
+												for (var i = 0; i < zookeeperList.length; i++) {
+													var divContent = "<span data-toggle='modal' data-target='#myModal' onclick=showDetail('"
+															+ json[index].name
+															+ "','"
+															+ zookeeperList[i].name
+															+ "','"
+															+ zookeeperList[i].ip
+															+ "','"
+															+ zookeeperList[i].port
+															+ "','"
+															+ zookeeperList[i].time
+															+ "')>"
+															+ zookeeperList[i].type
+															+ "-"
+															+ zookeeperList[i].ip
+															+ "</span>";
+													if (zookeeperList[i].status == 0) {
+														zookeeperContent += "<div class='col-md-2' style='border: 1px solid red; color: red'>"
+																+ divContent
+																+ "</div>";
+													} else {
+														zookeeperContent += "<div class='col-md-2' style='border: 1px solid green; color: green'>"
+																+ divContent
+																+ "</div>";
+													}
+												}
+											}
+											zookeeperContent += "</div>";
+											content += zookeeperContent;
+											var dubboList = json[index].dubboList;
+											var dubboContent = "<h5>dubbo"
+													+ " 成功总数："
+													+ json[index].dubboSuccessCount
+													+ " ，失败总数："
+													+ json[index].dubboFailCount
+													+ "</h5>";
+											var j = 0;
+											if (null != dubboList
+													&& dubboList.length != 0) {
+												for (var i = 0; i < dubboList.length; i++) {
+													j++;
+													if (i % 6 == 0) {
+														dubboContent += "<div class='row'>";
+													}
+													var divContent = "<span data-toggle='modal' data-target='#myModal' onclick=showDetail('"
+															+ json[index].name
+															+ "','"
+															+ dubboList[i].name
+															+ "','"
+															+ dubboList[i].ip
+															+ "','"
+															+ dubboList[i].port
+															+ "','"
+															+ dubboList[i].time
+															+ "')>"
+															+ dubboList[i].name
+															+ "-"
+															+ dubboList[i].ip
+															+ "</span>";
+													if (dubboList[i].status == 0) {
+														dubboContent += "<div class='col-md-2 text-overflow' style='border: 1px solid red; color: red'>"
+																+ divContent
+																+ "</div>";
+													} else {
+														dubboContent += "<div class='col-md-2 text-overflow' style='border: 1px solid green; color: green'>"
+																+ divContent
+																+ "</div>";
+													}
+													if (j == 6) {
+														dubboContent += "</div>";
+														j = 0;
+													}
+												}
+											}
+											content += dubboContent;
+											content += "</div>";
+											content += "</div>";
+											envTotal += envTotalFail;
+											envTotal += envTotalSuccess;
+											envOverviewHtml += "<a style='padding-right: 20px;' href='#"+json[index].env+"'>"
+													+ json[index].name
+													+ "，总数:"
+													+ envTotal
+													+ "，成功:"
+													+ envTotalSuccess
+													+ "，失败:"
+													+ envTotalFail + "</a>";
+
+										});
+						$("#main").html(content);
+						total += totalFail;
+						total += totalSuccess;
+						overviewText += "总数:" + total + "，成功:" + totalSuccess
+								+ "，失败:" + totalFail + "";
+						$("#overview").html(overviewText);
+						$("#envOverview").html(envOverviewHtml);
+					},
+					error : function() {
+						alert("搜索异常");
+					}
+				});
+	}
+
+	$(document).ready(function() {
+		setInterval(refresh, 3000);
+	});
+</script>
+</head>
+<body>
+
+	<!-- Modal -->
+	<div class="modal fade" id="myModal" tabindex="-1" role="dialog"
+		aria-labelledby="myModalLabel">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal"
+						aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<h4 class="modal-title" id="myModalLabel">应用详情</h4>
+				</div>
+				<div class="modal-body" id="appDetail">应用详情内容</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="alert alert-success" role="alert">
+		<span style="padding-right: 50px;"><a href="/"
+			style="color: red;">返回首页</a></span><span style="padding-right: 50px;"
+			id="overview">总数:0，成功:0，失败:0</span><span id="envOverview"></span>
+	</div>
+
+	<div class="container-fluid" role="main" id="main">数据初始化……</div>
+
+</body>
+</html>

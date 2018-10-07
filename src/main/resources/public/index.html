@@ -1,0 +1,406 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+<link rel="stylesheet" href="/css/bootstrap.min.css">
+
+<!-- 可选的 Bootstrap 主题文件（一般不用引入） -->
+<link rel="stylesheet" href="/css/bootstrap-theme.min.css">
+
+<script src="/js/jquery.min.js"></script>
+
+<!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+<script src="js/bootstrap.min.js"></script>
+
+<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+      <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+<style type="text/css">
+.table-hover>tbody>tr:hover {
+	background-color: #FFE4E1;
+}
+</style>
+
+<script>
+	$(document)
+			.ready(
+					function() {
+						var paramValue = $
+								.ajax({
+									url : "/env/list",
+									type : 'post',
+									cache : false,
+									dataType : 'json',
+									contentType : "application/json",
+									success : function(data) {
+										var json = eval(data); //数组    
+										var selectOptionHtml = "";
+										$
+												.each(
+														json,
+														function(index) {
+															selectOptionHtml += "<option value='"+json[index].env+"'>"
+																	+ json[index].name
+																	+ "</option>"
+														});
+										console.log(selectOptionHtml);
+										$("#selectEnv").html(selectOptionHtml);
+										var env = $("#selectEnv").val();
+										var name = $(
+												'#selectEnv option:selected')
+												.text();
+										console.log(env);
+										setCookie("env", env, 7);
+										setCookie("env_name", name, 7);
+										$("#currentEnv").html("当前环境：" + name);
+									},
+									error : function() {
+										alert("初始化环境异常");
+									}
+								});
+					});
+
+	//读Cookie
+	function getCookie(objName) {//获取指定名称的cookie的值
+		var arrStr = document.cookie.split("; ");
+		for (var i = 0; i < arrStr.length; i++) {
+			var temp = arrStr[i].split("=");
+			if (temp[0] == objName)
+				return unescape(temp[1]);
+		}
+		return "";
+	}
+	//设置cookie的值
+	function setCookie(cname, cvalue, exdays) {
+		var d = new Date();
+		console.log(cname + '/' + cvalue + '/' + exdays)
+		d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+		var expires = "expires=" + d.toGMTString();
+		document.cookie = cname + "=" + escape(cvalue) + "; " + expires;
+		console.log(document.cookie);
+	}
+
+	$(document).ready(function() {
+		$("#selectEnv").change(function() {
+			var env = $('#selectEnv option:selected').val();
+			var name = $('#selectEnv option:selected').text();
+			console.log(env);
+			setCookie("env", env, 7);
+			setCookie("env_name", name, 7);
+			$("#currentEnv").html("当前环境：" + name);
+		})
+	});
+
+	$(document)
+			.ready(
+					function() {
+						$("#searchButton")
+								.click(
+										function() {
+											var inputValue = $("#searchInput")
+													.val();
+											if (inputValue == '') {
+												alert("请输入服务接口名称");
+												return;
+											}
+											$
+													.ajax({
+														url : '/provider/list',
+														data : {
+															key : inputValue
+														},
+														type : 'post',
+														cache : false,
+														dataType : 'json',
+														success : function(data) {
+															$(
+																	"#serviceInfoTbody")
+																	.html('');
+															if (data.length == 0) {
+																$(
+																		"#serviceNotFound")
+																		.show();
+																return;
+															}
+															$(
+																	"#serviceNotFound")
+																	.hide();
+															var json = eval(data); //数组     
+															var content = "";
+															$
+																	.each(
+																			json,
+																			function(
+																					index) {
+																				//循环获取数据    
+																				var service = json[index].service;
+																				var version = json[index].version;
+																				var group = json[index].group;
+																				var providers = json[index].providers;
+																				var providerHtml = "";
+																				if (null != providers) {
+																					for (var i = 0; i < providers.length; i++) {
+																						providerHtml += '<span class="label label-info">'
+																								+ providers[i]
+																								+ '</span> ';
+																					}
+																				}
+																				var app = json[index].app;
+																				if (app == null) {
+																					app = "";
+																				}
+																				var uuid = json[index].uuid;
+																				content += "<tr>"
+																						+ "<td>"
+																						+ service
+																						+ ":"
+																						+ version
+																						+ "</td>"
+																						+ "<td>"
+																						+ group
+																						+ "</td>"
+																						+ "<td>"
+																						+ providerHtml
+																						+ "</td>"
+																						+ "<td>"
+																						+ app
+																						+ "</td><td><a href='/method.html?uuid="
+																						+ uuid
+																						+ "'>选择测试方法</a></td><td><a href='#' data-toggle='modal' data-target='#consumerInfo' onclick=consumerList('"
+																						+ service
+																						+ "') >查看消费者</a></td><td><a href='#' data-toggle='modal' data-target='#myModal' onclick=initConfig('"
+																						+ service
+																						+ "','"
+																						+ group
+																						+ "','"
+																						+ version
+																						+ "','"
+																						+ uuid
+																						+ "') >生成配置文件</a></td></tr>";
+																			});
+															$(
+																	"#serviceInfoTbody")
+																	.html(
+																			content);
+														},
+														error : function() {
+															alert("搜索异常");
+														}
+													});
+										});
+					});
+
+	function initConfig(service, group, version, uuid) {
+		var pomContent = '';
+		$.ajax({
+			url : '/generateDubboConfig?uuid=' + uuid,
+			type : 'post',
+			cache : false,
+			async : false,
+			success : function(data) {
+				pomContent = data;
+			}
+		});
+		console.log(pomContent);
+		if ('' != pomContent) {
+			$("#consumerConfigPom").html('');
+			$("#consumerConfigPom").html('<pre>' + pomContent + '</pre>');
+		}
+		var xmlContent = '';
+		var serviceArray = service.split("\.");
+		var serviceName = serviceArray[serviceArray.length - 1];
+		var serviceNameFormat = serviceName.substring(0, 1).toLowerCase()
+				+ serviceName.substring(1);
+		xmlContent += '<dubbo:registry id="inner" protocol="zookeeper" address="zookeeper服务器地址" />\n\n';
+		xmlContent += '<dubbo:reference id="' + serviceNameFormat
+				+ '" interface="' + service + '" check="false" ';
+		if (group != '') {
+			xmlContent += ' group="' + group + '" ';
+		}
+		if (version != '') {
+			xmlContent += ' version="' + version + '" ';
+		}
+		xmlContent += '/>';
+		console.log(xmlContent);
+		$("#consumerConfigXml").text('');
+		xmlContent = $("#consumerConfigXml").text(xmlContent).html();
+		$("#consumerConfigXml").html('');
+		$("#consumerConfigXml").html('<pre>' + xmlContent + '</pre>');
+		//$('#myModal').modal();
+	}
+
+	function consumerList(service) {
+		$
+				.ajax({
+					url : '/consumer/list',
+					data : {
+						service : service
+					},
+					type : 'post',
+					cache : false,
+					dataType : 'json',
+					success : function(data) {
+						if (data.length == 0) {
+							return;
+						}
+						var json = eval(data); //数组     
+						var content = "";
+						$
+								.each(
+										json,
+										function(index) {
+											//循环获取数据    
+											var host = json[index].host;
+											var application = json[index].application;
+											var invokeInterface = json[index].invokeInterface;
+											var pid = json[index].pid;
+											var methods = json[index].methods;
+											var version = json[index].version;
+											var dubbo = json[index].dubbo;
+											var consumerMethods = "";
+											if ("" != methods) {
+												var methodsArray = methods
+														.split(",");
+												for (var i = 0; i < methodsArray.length; i++) {
+													consumerMethods += '<span class="label label-default">'
+															+ methodsArray[i]
+															+ '</span> ';
+												}
+											}
+											content += "<tr>" + "<td>" + host
+													+ ":" + pid + "</td>"
+													+ "<td>" + application
+													+ "</td>" + "<td>"
+													+ invokeInterface + "</td>"
+													+ "<td>" + consumerMethods
+													+ "</td><td>" + version
+													+ "</td></tr>";
+										});
+						$("#consumerInfoTbody").html('');
+						$("#consumerInfoTbody").html(content);
+					},
+					error : function() {
+						alert("搜索异常");
+					}
+				});
+	}
+</script>
+</head>
+<body>
+
+	<div class="container-fluid" role="main">
+
+		<div class="alert alert-info" role="alert">
+			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+			<span class="sr-only">Error:</span> 操作步骤
+			<ul class="list-group">
+				<li class="list-group-item">1、选择环境</li>
+				<li class="list-group-item">2、输入service名称</li>
+				<li class="list-group-item">3、选择测试方法</li>
+				<li class="list-group-item">4、输入方法参数，查看执行结果</li>
+			</ul>
+		</div>
+
+		<div class="bs-example" data-example-id="glyphicons-accessibility">
+			<div class="alert alert-success" role="alert">
+				<span style="padding-right: 100px;"><a href="/monitor.html"
+					style="color: red;"> 监控大盘</a></span> <span id="currentEnv"></span> <input
+					type="hidden" id="group"> <span style="margin-left: 100px;">切换环境：<select
+					id="selectEnv"></select></span>
+			</div>
+		</div>
+
+
+		<div class="bs-example" data-example-id="glyphicons-accessibility">
+			<div class="alert alert-success" role="alert">
+				<div class="input-group">
+					<input type="text" class="form-control"
+						placeholder="请输入服务接口名称,支持大小写模糊匹配，如com.user.service.api.IUserRoleService可以输入userroleservice"
+						aria-describedby="basic-addon2" id="searchInput" required
+						autofocus> <span class="input-group-addon btn-success"
+						id="searchButton">搜索</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal fade" id="consumerInfo" tabindex="-1" role="dialog"
+			aria-labelledby="myModalLabel">
+			<div class="modal-dialog" role="document" style="width: 95%">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal"
+							aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+						<h4 class="modal-title" id="consumerInfoLabel">dubbo消费者信息</h4>
+					</div>
+					<div class="modal-body">
+						<div class="table-responsive">
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>host</th>
+										<th>应用</th>
+										<th>服务调用方</th>
+										<th>服务方法</th>
+										<th>version</th>
+										<!-- <th>dubbo版本</th> -->
+									</tr>
+								</thead>
+								<tbody id="consumerInfoTbody">
+
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modal -->
+		<div class="modal fade" id="myModal" tabindex="-1" role="dialog"
+			aria-labelledby="myModalLabel">
+			<div class="modal-dialog" role="document" style="width: 80%">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal"
+							aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+						<h4 class="modal-title" id="myModalLabel">dubbo配置文件(消费者)</h4>
+					</div>
+					<div class="modal-body" id="consumerConfigPom"></div>
+					<div class="modal-body" id="consumerConfigXml"></div>
+				</div>
+			</div>
+		</div>
+
+		<div class="table-responsive">
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th>Data ID</th>
+						<th>Group</th>
+						<th>Provider</th>
+						<th>应用名</th>
+						<th>操作</th>
+					</tr>
+				</thead>
+				<tbody id="serviceInfoTbody">
+
+				</tbody>
+			</table>
+		</div>
+
+		<div id="serviceNotFound" style="display: none">
+			<a href="serviceNotFound.html" target="blank" style="color: red">未搜索到服务接口,点击详情手动排查</a>
+		</div>
+	</div>
+
+</body>
+</html>

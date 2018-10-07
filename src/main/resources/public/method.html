@@ -1,0 +1,344 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+<link rel="stylesheet"
+	href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css"
+	integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+	crossorigin="anonymous">
+
+<!-- 可选的 Bootstrap 主题文件（一般不用引入） -->
+<link rel="stylesheet"
+	href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+	integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp"
+	crossorigin="anonymous">
+
+<script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
+
+<!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+<script
+	src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"
+	integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+	crossorigin="anonymous"></script>
+
+<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+      <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+<style type="text/css">
+.table-hover>tbody>tr:hover {
+	background-color: #FFE4E1;
+}
+</style>
+
+<script>
+	//读Cookie
+	function getCookie(objName) {//获取指定名称的cookie的值
+		var arrStr = document.cookie.split("; ");
+		for (var i = 0; i < arrStr.length; i++) {
+			var temp = arrStr[i].split("=");
+			if (temp[0] == objName)
+				return unescape(temp[1]);
+		}
+		return "";
+	}
+	$(document).ready(function() {
+		var name = getCookie("env_name");
+		$("#currentEnv").html("当前环境：" + name);
+	});
+	function getUrlParam(name) {
+		var url = location.search; //获取url中"?"符后的字串   
+		var theRequest = new Object();
+		if (url.indexOf("?") != -1) {
+			var str = url.substr(1);
+			strs = str.split("&");
+			for (var i = 0; i < strs.length; i++) {
+				theRequest[strs[i].split("=")[0]] = unescape(strs[i].split("=")[1]);
+			}
+		}
+		return theRequest[name];
+	}
+
+	$(document)
+			.ready(
+					function() {
+						var uuid = getUrlParam("uuid");
+						$
+								.ajax({
+									url : "/selectAllMethod?uuid=" + uuid,
+									type : 'post',
+									cache : false,
+									dataType : 'json',
+									contentType : "application/json",
+									success : function(data) {
+										var json = eval(data); //数组  
+										var serviceName = json[0].serviceName;
+										var version = json[0].serviceVersion;
+										$('#serviceName').html(
+												serviceName + ":" + version);
+										var content = "";
+										$
+												.each(
+														json,
+														function(index) {
+															//循环获取数据    
+															var methodName = json[index].methodName;
+															var parameterType = json[index].parameterType;
+															var parameterName = json[index].parameterName;
+															console
+																	.log(parameterName);
+															var parameterTypeHtml = "";
+															if (null == parameterType
+																	|| parameterType.length == 0) {
+																parameterTypeHtml += '<span class="label label-info"><span>'
+															}
+															for (var i = 0; i < parameterType.length; i++) {
+																parameterTypeHtml += '<span class="label label-info">'
+																		+ parameterType[i]
+																		+ '';
+																if (null != parameterName
+																		&& parameterName.length == parameterType.length) {
+																	parameterTypeHtml += ' ( '
+																			+ parameterName[i]
+																			+ ' )';
+																}
+																parameterTypeHtml += '</span> ';
+																if (i != 0
+																		&& i % 4 == 0) {
+																	parameterTypeHtml += "<br/><br/>";
+																}
+															}
+															var returnType = json[index].returnType;
+															var methodUuid = json[index].uuid;
+															var group = json[index].group;
+															content += "<tr>"
+																	+ "<td>"
+																	+ methodName
+																	+ "</td>"
+																	+ "<td>"
+																	+ parameterTypeHtml
+																	+ "</td>"
+																	+ "<td>"
+																	+ returnType
+																	+ "</td><td><a href='/invoke.html?uuid="
+																	+ methodUuid
+																	+ "&group="
+																	+ group
+																	+ "&serviceUuid="
+																	+ uuid
+																	+ "'>测试</span></td></tr>";
+														});
+										$("tbody").html(content);
+									},
+									error : function(data) {
+										//alert(data.responseText);
+										$("#methodNotFound").show();
+									}
+								});
+					});
+
+	$(document)
+			.ready(
+					function() {
+						$("#searchButton")
+								.click(
+										function() {
+											var jarFile = $("#jarFile").val();
+											if (jarFile == '') {
+												alert("请输入服务接口所在jar包地址");
+												return;
+											}
+											var jarDependency = $(
+													"#jarDependency").val();
+											var jarDependencyArray = jarDependency
+													.split(",");
+											var dependencyJarFilePaths = new Array();
+											for (var i = 0; i < jarDependencyArray.length; i++) {
+												dependencyJarFilePaths
+														.push(jarDependencyArray[i]);
+											}
+											var uuid = getUrlParam("uuid");
+											$
+													.ajax({
+														url : "/refreshAllMethod?uuid="
+																+ uuid
+																+ "&jarFilePath="
+																+ jarFile,
+														data : JSON
+																.stringify(dependencyJarFilePaths),
+														type : 'post',
+														cache : false,
+														dataType : 'json',
+														contentType : "application/json",
+														success : function(data) {
+															var json = eval(data); //数组     
+															var content = "";
+															$
+																	.each(
+																			json,
+																			function(
+																					index) {
+																				//循环获取数据    
+																				var methodName = json[index].methodName;
+																				var parameterType = json[index].parameterType;
+																				var parameterTypeHtml = "";
+																				for (var i = 0; i < parameterType.length; i++) {
+																					parameterTypeHtml += '<span class="label label-default">'
+																							+ parameterType[i]
+																							+ '</span> ';
+																				}
+																				var returnType = json[index].returnType;
+																				var methodUuid = json[index].uuid;
+																				var group = json[index].group;
+																				content += "<tr>"
+																						+ "<td>"
+																						+ methodName
+																						+ "</td>"
+																						+ "<td>"
+																						+ parameterTypeHtml
+																						+ "</td>"
+																						+ "<td>"
+																						+ returnType
+																						+ "</td><td><a href='/invoke.html?uuid="
+																						+ methodUuid
+																						+ "&group="
+																						+ group
+																						+ "&serviceUuid="
+																						+ uuid
+																						+ "'>测试</span></td></tr>";
+																			});
+															$("tbody").html(
+																	content);
+														},
+														error : function(data) {
+															alert(data.responseText);
+														}
+													});
+										});
+					});
+	$(document)
+			.ready(
+					function() {
+						$("#forceSearchButton")
+								.click(
+										function() {
+											var uuid = getUrlParam("uuid");
+											$
+													.ajax({
+														url : "/refreshAllMethodFromNexus?uuid="
+																+ uuid,
+														type : 'post',
+														cache : false,
+														dataType : 'json',
+														contentType : "application/json",
+														success : function(data) {
+															var json = eval(data); //数组     
+															var content = "";
+															$
+																	.each(
+																			json,
+																			function(
+																					index) {
+																				//循环获取数据    
+																				var methodName = json[index].methodName;
+																				var parameterType = json[index].parameterType;
+																				var parameterTypeHtml = "";
+																				for (var i = 0; i < parameterType.length; i++) {
+																					parameterTypeHtml += '<span class="label label-default">'
+																							+ parameterType[i]
+																							+ '</span> ';
+																				}
+																				var returnType = json[index].returnType;
+																				var methodUuid = json[index].uuid;
+																				var group = json[index].group;
+																				content += "<tr>"
+																						+ "<td>"
+																						+ methodName
+																						+ "</td>"
+																						+ "<td>"
+																						+ parameterTypeHtml
+																						+ "</td>"
+																						+ "<td>"
+																						+ returnType
+																						+ "</td><td><a href='/invoke.html?uuid="
+																						+ methodUuid
+																						+ "&group="
+																						+ group
+																						+ "&serviceUuid="
+																						+ uuid
+																						+ "'>测试</span></td></tr>";
+																			});
+															$("tbody").html(
+																	content);
+														},
+														error : function(data) {
+															alert(data.responseText);
+														}
+													});
+										});
+					});
+</script>
+</head>
+<body>
+
+	<div class="container-fluid" role="main">
+
+		<div class="bs-example" data-example-id="glyphicons-accessibility">
+			<div class="alert alert-success" role="alert">
+				<span style="padding-right: 100px;"><a href="/monitor.html"
+					style="color: red;"> 监控大盘</a></span><span style="padding-right: 100px;"><a
+					href="/" style="color: red;">返回首页</a></span> <span id="currentEnv"
+					style="padding-right: 100px;"></span> 服务接口：<span id="serviceName"></span>
+			</div>
+		</div>
+
+
+		<!--<div class="jumbotron">
+			<button class="btn btn-lg btn-success btn-block"
+				id="forceSearchButton">强制刷新接口</button>
+			<br />
+			  <div>
+				<input type="text" id="jarFile" class="form-control"
+					placeholder="请输入服务接口所在jar包地址" autofocus>
+			</div>
+			<div>
+				<input type="text" id="jarDependency" class="form-control"
+					placeholder="请输入服务接口依赖的第三方jar包地址,多个以逗号隔开">
+			</div>
+			<button class="btn btn-lg btn-success btn-block" id="searchButton">手动刷新接口
+			</button>
+		</div>-->
+
+
+		<div class="table-responsive">
+
+			<div class="panel-heading">
+				<h4>dubbo服务的方法列表</h4>
+			</div>
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th>方法名</th>
+						<th>参数列表</th>
+						<th>返回类型</th>
+						<th>操作</th>
+					</tr>
+				</thead>
+				<tbody>
+
+				</tbody>
+			</table>
+		</div>
+
+		<div id="methodNotFound" style="display: none">
+			<a href="methodNotFound.html" target="blank" style="color: red">未搜索到服务接口方法,点击详情手动排查</a>
+		</div>
+
+	</div>
+
+</body>
+</html>

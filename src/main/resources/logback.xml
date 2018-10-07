@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<target>System.out</target>
+		<encoder>
+			<Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg %n
+			</Pattern>
+			<charset>utf8</charset>
+		</encoder>
+	</appender>
+
+	<appender name="FILE"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>/app/log/dubbo-ops.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>/app/log/dubbo-ops/dubbo-ops.%d{yyyy-MM-dd}.log
+			</fileNamePattern>
+			<maxHistory>30</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg %n
+			</Pattern>
+			<charset>utf8</charset>
+		</encoder>
+	</appender>
+
+	<!--perf4j配置 -->
+	<!-- <appender name="STATISTICS"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			日志文件输出的文件名
+			<FileNamePattern>/alidata1/app_log/dubbo-ops/statistics.%d{yyyy-MM-dd}.log
+			</FileNamePattern>
+		</rollingPolicy>
+		<encoder>
+			<Pattern>%msg %n
+			</Pattern>
+			<charset>utf8</charset>
+		</encoder>
+	</appender>
+
+	<appender name="COALESCINGSTATISTICS"
+		class="org.perf4j.logback.AsyncCoalescingStatisticsAppender">
+		<timeSlice>10000</timeSlice>
+		<appender-ref ref="STATISTICS" />
+	</appender>
+
+	<logger name="org.perf4j.TimingLogger" level="info" additivity="false">
+		<appender-ref ref="COALESCINGSTATISTICS" />
+	</logger> -->
+	<!--perf4j配置结束 -->
+
+	<root level="info">
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="FILE" />
+	</root>
+</configuration>

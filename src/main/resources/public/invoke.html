@@ -1,0 +1,460 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+<link rel="stylesheet" href="/css/bootstrap.min.css">
+
+<!-- 可选的 Bootstrap 主题文件（一般不用引入） -->
+<link rel="stylesheet" href="/css/bootstrap-theme.min.css">
+
+<script src="/js/jquery.min.js"></script>
+
+
+<!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
+<script src="js/bootstrap.min.js"></script>
+
+<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+      <script src="https://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+<link rel="stylesheet" href="/css/jquery.json-viewer.css">
+
+
+<script src="/js/jquery.json-viewer.js"></script>
+
+<script type="text/javascript">
+	//读Cookie
+	function getCookie(objName) {//获取指定名称的cookie的值
+		var arrStr = document.cookie.split("; ");
+		for (var i = 0; i < arrStr.length; i++) {
+			var temp = arrStr[i].split("=");
+			if (temp[0] == objName)
+				return unescape(temp[1]);
+		}
+		return "";
+	}
+	$(document).ready(function() {
+		var name = getCookie("env_name");
+		$("#currentEnv").html("当前环境：" + name);
+		var serviceUuid = getUrlParam("serviceUuid");
+		$("#methodHref").attr("href", "/method.html?uuid=" + serviceUuid);
+	});
+
+	function getUrlParam(name) {
+		var url = location.search; //获取url中"?"符后的字串   
+		var theRequest = new Object();
+		if (url.indexOf("?") != -1) {
+			var str = url.substr(1);
+			strs = str.split("&");
+			for (var i = 0; i < strs.length; i++) {
+				theRequest[strs[i].split("=")[0]] = unescape(strs[i].split("=")[1]);
+			}
+		}
+		return theRequest[name];
+	}
+	$(document)
+			.ready(
+					//function() {
+					//$("#searchButton")
+					//.click(
+					function() {
+						var uuid = getUrlParam("uuid");
+						var targetProvider = $("#selectProvider").val();
+						$
+								.ajax({
+									url : "/methodInfo?uuid=" + uuid
+											+ "&targetProvider="
+											+ targetProvider,
+									type : 'post',
+									cache : false,
+									dataType : 'json',
+									contentType : "application/json",
+									success : function(data) {
+										var content = "";
+										var serviceName = data.serviceName;
+										var version = data.serviceVersion;
+										var group = data.group;
+										var methodName = data.methodName;
+										var parameterType = data.parameterType;
+										var parameterName = data.parameterName;
+										var parameterTypeHtml = "";
+										if (null == parameterType
+												|| parameterType.length == 0) {
+											parameterTypeHtml += '<span class="label label-info"><span>'
+										}
+										for (var i = 0; i < parameterType.length; i++) {
+											parameterTypeHtml += '<span class="label label-info">'
+													+ parameterType[i] + '';
+											if (null != parameterName
+													&& parameterName.length == parameterType.length) {
+												parameterTypeHtml += ' ( '
+														+ parameterName[i]
+														+ ' )';
+											}
+											parameterTypeHtml += '</span> ';
+											if (i != 0 && i % 9 == 0) {
+												parameterTypeHtml += "<br/><br/>";
+											}
+										}
+										var parameterValue = data.parameterValue;
+										$('#serviceName').html(
+												serviceName + ":" + version);
+										$('#methodName').html(
+												methodName + "~"
+														+ parameterTypeHtml);
+										$('#parameterType').html(methodName);
+										$('#group').val(group);
+										$('#parameterValue').val(
+												JSON.stringify(parameterValue,
+														null, 2));
+									},
+									error : function(data) {
+										if (data.status == 302) {
+											window.location = "/";
+											return;
+										}
+										alert("搜索异常");
+									}
+								});
+					});
+	//$("#searchButton").click();
+	//});
+</script>
+
+
+<script>
+	$(document)
+			.ready(
+					function() {
+						$("#searchButton")
+								.click(
+										function() {
+											$("#searchButton").attr("disabled",
+													"true");
+											var options = {
+												collapsed : $('#collapsed').is(
+														':checked'),
+												withQuotes : $('#with-quotes')
+														.is(':checked')
+											};
+											$('#json-renderer').jsonViewer(
+													undefined, options);//每次请求前清空数据
+											var parameterValue = $(
+													"#parameterValue").val();
+											var uuid = getUrlParam("uuid");
+											var selectProvider = $(
+													"#selectProvider").val();
+											var paramValue = $
+													.ajax({
+														url : "/invokeMethod?uuid="
+																+ uuid
+																+ "&targetProvider="
+																+ selectProvider,
+														data : parameterValue,
+														type : 'post',
+														cache : false,
+														dataType : 'json',
+														contentType : "application/json",
+														success : function(data) {
+															$("#searchButton")
+																	.removeAttr(
+																			"disabled");
+															$("#jsonDiv")
+																	.show();
+															$("#pressureDiv")
+																	.show();
+															$(
+																	"#pressureTableDiv")
+																	.hide();
+															var input = eval('('
+																	+ JSON
+																			.stringify(data)
+																	+ ')');
+															$('#json-renderer')
+																	.jsonViewer(
+																			input,
+																			options);
+														},
+														error : function(data) {
+															$("#searchButton")
+																	.removeAttr(
+																			"disabled");
+															$("#jsonDiv")
+																	.show();
+															$("#pressureDiv")
+																	.hide();
+															$(
+																	"#pressureTableDiv")
+																	.hide();
+															var input = "";
+															if (data.responseJSON == undefined
+																	|| data.responseJSON.message == undefined) {
+																input = eval('('
+																		+ JSON
+																				.stringify(data.responseText)
+																		+ ')');
+															} else {
+																input = eval('('
+																		+ JSON
+																				.stringify(data.responseJSON.message)
+																		+ ')');
+															}
+															$('#json-renderer')
+																	.jsonViewer(
+																			input,
+																			options);
+														}
+													});
+										});
+					});
+	$(document)
+			.ready(
+					function() {
+						var parameterValue = $("#parameterValue").val();
+						var uuid = getUrlParam("uuid");
+						var group = getUrlParam("group");
+						var paramValue = $
+								.ajax({
+									url : "/selectProvider?uuid=" + uuid
+											+ "&group=" + group,
+									data : parameterValue,
+									type : 'post',
+									cache : false,
+									dataType : 'json',
+									contentType : "application/json",
+									success : function(data) {
+										var json = eval(data); //数组    
+										var selectOptionHtml = "<option value=''>不指定</option>";
+										$
+												.each(
+														json,
+														function(index) {
+															selectOptionHtml += "<option value='"+json[index]+"'>"
+																	+ json[index]
+																	+ "</option>"
+														});
+										console.log(selectOptionHtml);
+										$("#selectProvider").html(
+												selectOptionHtml);
+
+									},
+									error : function(data) {
+										if (data.status == 302) {
+											window.location = "/";
+											return;
+										}
+										alert("搜索异常");
+									}
+								});
+					});
+
+	$(document)
+			.ready(
+					function() {
+						$("#pressureButton")
+								.click(
+										function() {
+											$("#pressureButton").attr(
+													"disabled", "true");
+											var parameterValue = $(
+													"#parameterValue").val();
+											var uuid = getUrlParam("uuid");
+											var selectProvider = $(
+													"#selectProvider").val();
+											var threadCount = $("#threadCount")
+													.val();
+											var threadExecuteCount = $(
+													"#threadExecuteCount")
+													.val();
+											var paramValue = $
+													.ajax({
+														url : "/pressureTest?uuid="
+																+ uuid
+																+ "&targetProvider="
+																+ selectProvider
+																+ "&threadCount="
+																+ threadCount
+																+ "&threadExecuteCount="
+																+ threadExecuteCount,
+														data : parameterValue,
+														type : 'post',
+														cache : false,
+														dataType : 'json',
+														contentType : "application/json",
+														success : function(data) {
+															$("#pressureButton")
+																	.removeAttr(
+																			"disabled");
+															$(
+																	"#pressureTableDiv")
+																	.show();
+															$("#jsonDiv")
+																	.hide();
+															var json = eval(data); //数组
+															var content = "";
+															var i = 0;
+															$
+																	.each(
+																			json,
+																			function(
+																					index) {
+																				i++;
+																				//循环获取数据    
+																				var count = json[index].count;
+																				var successCount = json[index].successCount;
+																				var failCount = json[index].failCount;
+																				var maxExecuteTime = json[index].maxExecuteTime;
+																				var minExecuteTime = json[index].minExecuteTime;
+																				var avgExecuteTime = json[index].avgExecuteTime;
+																				content += "<tr>"
+																						+ "<td>"
+																						+ i
+																						+ "</td>"
+																						+ "<td>"
+																						+ count
+																						+ "</td>"
+																						+ "<td>"
+																						+ successCount
+																						+ "</td>"
+																						+ "<td>"
+																						+ failCount
+																						+ "</td>"
+																						+ "<td>"
+																						+ maxExecuteTime
+																						+ "</td>"
+																						+ "<td>"
+																						+ minExecuteTime
+																						+ "</td>"
+																						+ "<td>"
+																						+ avgExecuteTime
+																						+ "</td>"
+																						+ "</tr>";
+																			});
+															console.log(i);
+															$("tbody").html('');
+															$("tbody").html(
+																	content);
+														},
+														error : function(data) {
+															if (data.status == 302) {
+																window.location = "/";
+																return;
+															}
+															$("#pressureButton")
+																	.removeAttr(
+																			"disabled");
+															$(
+																	"#pressureTableDiv")
+																	.hide();
+															$("#jsonDiv")
+																	.hide();
+															var input = eval('('
+																	+ JSON
+																			.stringify(data.responseJSON.message)
+																	+ ')');
+															alert(input);
+
+														}
+													});
+										});
+					});
+</script>
+</head>
+<body>
+
+	<div class="container-fluid" role="main">
+
+		<div class="bs-example" data-example-id="glyphicons-accessibility">
+			<div class="alert alert-success" role="alert">
+				<span style="padding-right: 100px;"><a href="/monitor.html"
+					style="color: red;"> 监控大盘</a></span><span style="padding-right: 100px;"><a
+					href="/" style="color: red;">返回首页</a></span><span
+					style="padding-right: 100px;"><a id="methodHref"
+					style="color: red;">返回方法列表</a></span><span id="currentEnv"
+					style="padding-right: 100px;"></span> 服务接口：<span id="serviceName"
+					style="padding-right: 100px;"></span>
+			</div>
+			<div class="alert alert-success" role="alert">
+				接口方法：<span id="methodName"></span>
+			</div>
+
+			<h4>请按顺序输入方法参数</h4>
+			<div class="alert alert-success" role="alert">
+				<textarea class="form-control" id="parameterValue" rows="10">
+				</textarea>
+			</div>
+
+			<div class="alert alert-success" role="alert">
+				<input type="hidden" id="group"></input> 指定provider：<select
+					class="selectpicker" id="selectProvider"><option value="">不指定</option>
+				</select>
+				<button id="searchButton" class="btn btn-info">测试</button>
+			</div>
+
+
+			<div id="pressureDiv" style="display: none"
+				class="alert alert-success" role="alert">
+				线程数量：<select class="selectpicker" id="threadCount"><option
+						value="10">10</option>
+					<option value="1">1</option>
+					<option value="5">5</option>
+					<option value="20">20</option>
+					<option value="30">30</option>
+					<option value="40">40</option>
+					<option value="50">50</option>
+					<option value="100">100</option>
+				</select> &nbsp;&nbsp;&nbsp;&nbsp;每个线程执行次数：<select class="selectpicker"
+					id="threadExecuteCount"><option value="100">100</option>
+					<option value="1">1</option>
+					<option value="10">10</option>
+					<option value="50">50</option>
+					<option value="100">100</option>
+					<option value="500">500</option>
+					<option value="1000">1000</option>
+				</select>
+				<button id="pressureButton" class="btn btn-info">压力测试</button>
+			</div>
+
+			<div class="table-responsive" id="pressureTableDiv"
+				style="display: none">
+				<div class="panel-heading">
+					<h4>压测结果</h4>
+				</div>
+				<table class="table table-striped">
+					<thead>
+						<tr>
+							<th>线程编号</th>
+							<th>单个线程执行总次数</th>
+							<th>成功次数</th>
+							<th>失败次数</th>
+							<th>最大执行时间(ms)</th>
+							<th>最小执行时间(ms)</th>
+							<th>平均执行时间(ms)</th>
+						</tr>
+					</thead>
+					<tbody>
+
+					</tbody>
+				</table>
+			</div>
+
+			<div id="jsonDiv">
+				<h4>执行结果</h4>
+				<div class="alert alert-success" role="alert">
+					<div class="table-responsive">
+						<pre id="json-renderer"></pre>
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+
+	</div>
+
+</body>
+</html>
