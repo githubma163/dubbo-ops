@@ -1,9 +1,9 @@
 1. dubbo-ops是参考阿里巴巴内部的hsf-ops开发，hsf在阿里内部广泛使用，hsf-ops是开发hsf服务必要的工具。但是开源的dubbo一直缺少这个工具，dubbo-ops主要目的是提升开发测试效率，使用对象一般是开发同学，测试同学。
-2. dubbo-ops不同于dubbo官网的dubbo-ops，取这个名字完全是因为对标阿里内部的hsf-ops。操作页面基本和阿里内部的hsf-ops非常相似，只是功能上做了简化，部分功能做了优化。主要的优化点有
+2. dubbo-ops不同于dubbo官网的dubbo-ops，官网dubbo-ops的主要功能是dubbo-admin和dubbo-monitor，主要是dubbo服务的查询和监控。取这个名字完全是因为对标阿里内部的hsf-ops，操作页面基本和阿里内部的hsf-ops非常相似，只是功能上做了简化，部分功能做了优化。主要的优化点有
 - 添加了provider的选择
 - 添加了方法参数名称的显示（jdk1.8以上才支持）
 - 添加了压测功能
-- 添加了dubbo监控大盘（参考cat）
+- 添加了dubbo监控大盘（参考cat监控大盘）
 3. dubbo-ops中主要使用的技术
 - springboot
 - java反射
